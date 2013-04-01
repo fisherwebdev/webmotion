@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Draw</title>
+  <meta name="description" content="Leap Test 1">
+  <meta name="author" content="Bill Fisher">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <style>
+    body {
+      margin: 0;
+    }
+    #avatar {
+      height:10px;
+      width: 10px;
+      background: #f00;
+      -webkit-border-radius: 50%;
+      position: absolute;
+      z-index: 9999;
+    }
+    #pointable-data {
+      position: absolute;
+      z-index: 999;
+      width: 400px;
+      top: 0;
+      right: 0;
+      color: #888;
+    }
+
+    #myCanvas {
+      background: #000;
+    }
+  </style>
+
+  <script type="text/javascript" src="../easeljs/utils/UID.js"></script>
+  <script type="text/javascript" src="../easeljs/geom/Matrix2D.js"></script>
+  <script type="text/javascript" src="../easeljs/events/EventDispatcher.js"></script>
+  <script type="text/javascript" src="../easeljs/display/DisplayObject.js"></script>
+  <script type="text/javascript" src="../easeljs/display/Container.js"></script>
+  <script type="text/javascript" src="../easeljs/display/Stage.js"></script>
+  <script type="text/javascript" src="../easeljs/events/MouseEvent.js"></script>
+  <script type="text/javascript" src="../easeljs/display/Shape.js"></script>
+  <script type="text/javascript" src="../easeljs/display/Graphics.js"></script>
+  <script type="text/javascript" src="../easeljs/utils/Ticker.js"></script>
+  <script type="text/javascript" src="../easeljs/display/Text.js"></script>
+  <script type="text/javascript" src="../easeljs/ui/Touch.js"></script>
+  <script type="text/javascript" src="../easeljs/geom/Point.js"></script>
+
+  <script>
+
+    var canvas, stage;
+    var drawingCanvas;
+    var oldPt;
+    var oldMidPt;
+    var title;
+    var color;
+    var stroke;
+    var colors;
+    var index;
+
+    function init() {
+      // canvas variable assigned in leap code below
+
+      canvas.addEventListener("mouseenter", function (e) {
+        console.log(e)
+      });
+
+      index = 0;
+      colors = ["#828b20", "#b0ac31", "#cbc53d", "#fad779", "#f9e4ad", "#faf2db", "#563512", "#9b4a0b", "#d36600", "#fe8a00", "#f9a71f"];
+
+
+      stage = new createjs.Stage(canvas);
+      stage.autoClear = false;
+      stage.enableDOMEvents(true);
+
+      createjs.Touch.enable(stage); // touch support
+      createjs.Ticker.setFPS(24);
+
+      drawingCanvas = new createjs.Shape();
+
+      stage.addEventListener("stagemousedown", handleMouseDown);
+      stage.addEventListener("stagemouseup", handleMouseUp);
+
+      stage.addChild(drawingCanvas);
+      stage.update();
+    }
+
+    function stop() {}
+
+    function handleMouseDown(event) {
+      if (stage.contains(title)) { stage.clear(); stage.removeChild(title); }
+      color = colors[(index++)%colors.length];
+      stroke = 10; // Math.random()*30 + 10 | 0;
+      oldPt = new createjs.Point(stage.mouseX, stage.mouseY);
+      oldMidPt = oldPt;
+      stage.addEventListener("stagemousemove" , handleMouseMove);
+    }
+
+    function handleMouseMove(event) {
+      var midPt = new createjs.Point(oldPt.x + stage.mouseX>>1, oldPt.y+stage.mouseY>>1);
+
+      drawingCanvas.graphics.clear().setStrokeStyle(stroke, 'round', 'round').beginStroke(color).moveTo(midPt.x, midPt.y).curveTo(oldPt.x, oldPt.y, oldMidPt.x, oldMidPt.y);
+
+      oldPt.x = stage.mouseX;
+      oldPt.y = stage.mouseY;
+
+      oldMidPt.x = midPt.x;
+      oldMidPt.y = midPt.y;
+
+      stage.update();
+    }
+
+    function handleMouseUp(event) {
+      stage.removeEventListener("stagemousemove" , handleMouseMove);
+    }
+
+  </script>
+
+</head>
+<body onload="init();">
+
+
+
+<div id="avatar"></div>
+
+<div id="pointable-data"></div>
+
+<canvas id="myCanvas" width="1024" height="768"></canvas>
+
+
+
+<script src="../js/lib.js"></script>
+<script src="../js/leap.js"></script>
+<script>
+
+  // page set up
+  var dataContainer = document.getElementById("pointable-data");
+  var avatar = document.getElementById("avatar");
+  var docWidth = document.width;
+  var docHeight = document.height;
+  avatar.style.left = (docWidth / 2) - (avatar.offsetWidth / 2) + "px";
+  avatar.style.top = (docHeight / 2) - (avatar.offsetHeight / 2) + "px";
+  canvas = document.getElementById("myCanvas");
+  var canvasWidth = canvas.width;
+  var canvasHeight = canvas.height;
+
+  var vectorToString = function (vector, digits) {
+    if (typeof digits === "undefined") {
+      digits = 1;
+    }
+    return "(" + vector[0].toFixed(digits) + ", "
+      + vector[1].toFixed(digits) + ", "
+      + vector[2].toFixed(digits) + ")";
+  };
+
+  var createMouseEvent = function (options) {
+    var e = document.createEvent("MouseEvent"),
+        x = options.pageX,
+        y = options.pageY;
+
+    e.initMouseEvent(
+      options.type, // mousedown or mousemove or mouseup
+      true, // can bubble
+      false, // cancel bubble
+      Window, // view
+      1, // one click, not double click
+      x, // screenX.  inaccurate!
+      y, // screenY.  inaccurate!
+      x, // clientX
+      y, // clientX
+      false, false, false, false, // keys
+      0, // left button
+      options.relatedTarget // related target
+    );
+    options.target.dispatchEvent(e);
+  };
+
+  // Track one pointer as the primary pointer
+  var primaryPointableId;
+
+  // Track whether the Leap-simulate "mouse" is currently down or not
+  var leapMouseDown = false;
+  var leapMouseEnter = false;
+
+  // Setup Leap loop with frame callback function
+  var controllerOptions = {enableGestures: false};
+
+  Leap.loop(controllerOptions, function(frame) {
+    if (!primaryPointableId || !frame.pointable(primaryPointableId).valid) {
+      primaryPointableId = frame.pointables.length ? frame.pointables.sort(comparator("length"))[0].id : "-1"
+    }
+
+    var pointable = frame.pointable(primaryPointableId);
+
+    if (pointable.valid) {
+
+      var dataOutput = "";
+      dataOutput += "Pointable ID: " + pointable.id + "<br />";
+      dataOutput += "Belongs to hand with ID: " + pointable.handId + "<br />";
+
+      if (pointable.tool) {
+        dataOutput += "Classified as a tool <br />";
+        dataOutput += "Length: " + pointable.length.toFixed(1) + " mm<br />";
+        dataOutput += "Width: "  + pointable.width.toFixed(1) + " mm<br />";
+      }
+      else {
+        dataOutput += "Classified as a finger<br />";
+        dataOutput += "Length: " + pointable.length.toFixed(1) + " mm<br />";
+      }
+
+      dataOutput += "Direction: " + vectorToString(pointable.direction, 2) + "<br />";
+      dataOutput += "Tip position: " + vectorToString(pointable.tipPosition) + " mm<br />";
+      dataOutput += "Tip velocity: " + vectorToString(pointable.tipVelocity) + " mm/s<br />";
+
+      var direction = pointable.direction;
+      var directionX = parseInt(direction[0] * 100, 10);
+      var directionY = parseInt(direction[1] * -100, 10);
+
+      var position = pointable.tipPosition;
+      var positionX = parseInt(position[0], 10);
+      var positionY = parseInt(position[1], 10);
+
+      var positionRangeX = [-200, 200];
+      var positionRangeY = [20, 400];
+
+      var translateRangeX = [(docWidth / 2) * -1, (docWidth / 2)];
+      var translateRangeY = [(docHeight / 2), (docHeight / 2) * -1];
+
+      var directionXFactor = convert(positionY, [400, 20], [5, 10]);
+
+      dataOutput += "<br /><br />directionX: " + directionX + "<br />";
+      dataOutput += "<br />directionY: " + directionY + "<br />";
+      dataOutput += "<br />positionX: " + positionX + "<br />";
+      dataOutput += "<br />positionY: " + positionY + "<br />";
+      dataOutput += "<br />translateRangeX: " + translateRangeX + "<br />";
+      dataOutput += "<br />translateRangeY: " + translateRangeY + "<br />";
+      dataOutput += "Direction X factor: " + directionXFactor + "<br /><br />";
+
+      var translateX = parseInt(convert(positionX, positionRangeX, translateRangeX) + (directionX * directionXFactor), 10);
+      var translateY = parseInt(convert(positionY, positionRangeY, translateRangeY) + (directionY * 5), 10);
+
+      dataOutput += "translateX: " + translateX + " <br />";
+      dataOutput += "translateY: " + translateY + " <br />";
+
+      avatar.style.webkitTransform = "translate3d(" + translateX + "px, " + translateY + "px, 0)";
+
+
+      // synthetic mouse events
+
+      var pageX = (docWidth * 0.5) + translateX;
+      var pageY = (docHeight * 0.5) + translateY;
+
+      var target = (!leapMouseEnter && 0 < pageX && pageX <= canvasWidth && 0 < pageY && pageY <= canvasHeight) ? canvas : document.body;
+      leapMouseEnter = target === canvas ? true : false;
+
+      if (position[2] < 0) {
+        var type = leapMouseDown ? "mousemove" : "mousedown";
+        createMouseEvent({type: type, pageX: pageX, pageY: pageY, target: target});
+        leapMouseDown = true;
+      }
+      else if (leapMouseDown) {;
+        createMouseEvent({type: "mouseup", pageX: pageX, pageY: pageY, target: target});
+        leapMouseDown = false;
+      }
+      else {
+        createMouseEvent({type: "mousemove", pageX: pageX, pageY: pageY, target: target});
+      }
+
+
+    }
+    else {
+      var dataOutput = "no data";
+    }
+
+    dataContainer.innerHTML = dataOutput;
+
+
+
+  });
+
+</script>
+</body>
+</html>

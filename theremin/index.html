@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Theremin</title>
+  <meta name="description" content="A theremin built from the Web Audio API and controlled by a Leap Motion device.">
+  <meta name="author" content="Bill Fisher">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <style>
+    .avatar {
+      height:30px;
+      width: 30px;
+      -webkit-border-radius: 50%;
+      position: absolute;
+    }
+    #avatar1 {
+      background: #f00;
+    }
+    #avatar2 {
+      background: #00f;
+    }
+  </style>
+
+  <script src="../leap.js"></script>
+</head>
+<body>
+<h1>Theremin</h1>
+<h2>Data:</h2>
+<div id="pointable-data"></div>
+
+<div id="avatar1" class="avatar"></div>
+<div id="avatar2" class="avatar"></div>
+
+<script src="js/lib.js"></script>
+<script src="js/synth.js"></script>
+<script src="js/theremin.js"></script>
+
+</body>
+</html>

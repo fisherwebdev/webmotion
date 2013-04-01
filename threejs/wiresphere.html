@@ -1,0 +1,118 @@
+<html>
+<head>
+  <title>Wiresphere</title>
+  <style>
+    body {
+      margin: 0;
+    }
+    canvas { width: 100%; height: 100%; background: #000; }
+    #data-output {
+      position: absolute;
+      top: 0;
+      left: 0;
+      color: #f00;
+    }
+  </style>
+</head>
+<body>
+
+<div id="data-output"></div>
+
+<script src="../js/leap.js"></script>
+<script src="../js/lib.js"></script>
+<script src="../js/three.min.js"></script>
+
+<script>
+  var dataOutput = document.getElementById("data-output");
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+
+  var renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  var geometry = new THREE.SphereGeometry(50,32,16);
+  var material = new THREE.MeshBasicMaterial({color: 0xff0000, wireframe: true, transparent:true});
+  var sphere = new THREE.Mesh(geometry, material);
+  scene.add(sphere);
+
+  camera.position.z = 100;
+
+  var sphereRadiusRange = [0, 130],
+      xPalmNormalRange = [-75, 75];
+
+  // min, max, median, totalRange
+  var rotationRanges = {
+    y: [0.90, -0.90, 0.0, 1.80],
+    x: [-0.40, -1.0, -0.70, 0.60]
+    // y: [-0.66, -0.33, -0.50, 0.33]
+  };
+
+  var rotateSphere = function (hand) {
+    var rotation,
+      min,
+      max,
+      median,
+      totalRange,
+      percentageRotation;
+    ["y", "x"].forEach(function (rotationAxis, i) {
+
+      rotation = hand.palmNormal[i];
+      min = rotationRanges[rotationAxis][0];
+      max = rotationRanges[rotationAxis][1];
+      median = rotationRanges[rotationAxis][2];
+      totalRange = rotationRanges[rotationAxis][3];
+      percentageRotation = convert(rotation, [min, max], [-0.5, 0.5]);
+
+      if (Math.abs(percentageRotation) > 0.25) { // do nothing if within stability range
+        if (rotation < median) {
+          sphere.rotation[rotationAxis] -= (0.01 * percentageRotation);
+        }
+        else if (rotation > median) {
+          sphere.rotation[rotationAxis] -= (0.01 * percentageRotation);
+        }
+      }
+    });
+  };
+
+  var scaleSphere = function (hand) {
+
+//      this is more smoothe:
+
+    var scaleFactor = convert(hand.sphereRadius, sphereRadiusRange, [.97, 1.025]); // might be just my hand, but i'm relaxed with slightly less on the top end.
+    if (Math.abs(scaleFactor - 1.001) > 0.005) {
+      if ((sphere.scale.x > 0.3 && scaleFactor < 1) || (sphere.scale.x < 1.3 && scaleFactor > 1)) {
+        sphere.scale.multiplyScalar(scaleFactor);
+      }
+      return scaleFactor;
+    }
+
+//    this is jumpy:
+//
+//    var scale = convert(hand.sphereRadius, sphereRadiusRange, [.3, 1.3]);
+//    sphere.scale.set(scale, scale, scale);
+
+  };
+
+  Leap.loop({}, function(frame) {
+
+    var hand = frame.hands[0];
+    if (hand) {
+
+      if (!scaleSphere(hand)) {
+        rotateSphere(hand);
+      }
+
+
+      // var output = ""; // for testing
+      // dataOutput.innerHTML = output
+    }
+
+    renderer.render(scene, camera);
+
+  });
+
+</script>
+</body>
+</html>

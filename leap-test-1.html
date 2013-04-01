@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+
+    <title>Leap Test 1</title>
+    <meta name="description" content="Leap Test 1">
+    <meta name="author" content="Bill Fisher">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <style>
+      #avatar {
+        height:30px;
+        width: 30px;
+        background: #f00;
+        -webkit-border-radius: 50%;
+        position: absolute;
+      }
+    </style>
+
+    <script src="js/leap.js"></script>
+  </head>
+  <body>
+    <h1>Leap Test 1</h1>
+    <div id="pointable-data"></div>
+
+    <div id="avatar"></div>
+
+    <script>
+
+      var dataContainer = document.getElementById("pointable-data");
+
+      var avatar = document.getElementById("avatar");
+
+      var docWidth = document.width;
+      var docHeight = document.height;
+
+      avatar.style.left = (docWidth / 2) - (avatar.offsetWidth / 2) + "px";
+      avatar.style.top = (docHeight / 2) - (avatar.offsetHeight / 2) + "px";
+
+      var comparator = function (property) {
+        return function (a, b) {
+          if (a[property] < b[property]) return -1;
+          if (a[property] > b[property]) return 1;
+          return 0;
+        }
+      }
+
+      // convert
+      //
+      // Converts a number in range A to a number in range B.
+      //
+      // @param aRangeVal Number
+      // @param aRange Array [min, max]
+      // @param bRange Array [min, max]
+      var convert = function (aRangeVal, aRange, bRange) {
+        return ((aRangeVal - aRange[0]) / (aRange[1] - aRange[0])) * (bRange[1] - bRange[0]) + bRange[0];
+      }
+
+      var vectorToString = function (vector, digits) {
+        if (typeof digits === "undefined") {
+          digits = 1;
+        }
+        return "(" + vector[0].toFixed(digits) + ", "
+                   + vector[1].toFixed(digits) + ", "
+                   + vector[2].toFixed(digits) + ")";
+      }
+
+      // Store frame for motion functions
+      // var previousFrame;
+
+      // Track one pointer as the primary pointer
+      var primaryPointableId;
+
+      // Setup Leap loop with frame callback function
+      var controllerOptions = {enableGestures: false};
+
+      Leap.loop(controllerOptions, function(frame) {
+        if (!primaryPointableId || !frame.pointable(primaryPointableId).valid) {
+          primaryPointableId = frame.pointables.length ? frame.pointables.sort(comparator("length"))[0].id : "-1"
+        }
+
+        var pointable = frame.pointable(primaryPointableId);
+
+        if (pointable.valid) {
+
+          var pointableString = "<div>";
+          pointableString += "Pointable ID: " + pointable.id + "<br />";
+          pointableString += "Belongs to hand with ID: " + pointable.handId + "<br />";
+
+          if (pointable.tool) {
+            pointableString += "Classified as a tool <br />";
+            pointableString += "Length: " + pointable.length.toFixed(1) + " mm<br />";
+            pointableString += "Width: "  + pointable.width.toFixed(1) + " mm<br />";
+          }
+          else {
+            pointableString += "Classified as a finger<br />";
+            pointableString += "Length: " + pointable.length.toFixed(1) + " mm<br />";
+          }
+
+          pointableString += "Direction: " + vectorToString(pointable.direction, 2) + "<br />";
+          pointableString += "Tip position: " + vectorToString(pointable.tipPosition) + " mm<br />";
+          pointableString += "Tip velocity: " + vectorToString(pointable.tipVelocity) + " mm/s<br />";
+
+
+
+
+
+          var direction = pointable.direction;
+          var directionX = parseInt(direction[0] * 100, 10);
+          var directionY = parseInt(direction[1] * -100, 10);
+
+          var position = pointable.tipPosition;
+          var positionX = parseInt(position[0], 10);
+          var positionY = parseInt(position[1], 10);
+
+          var positionRangeX = [-200, 200];
+          var positionRangeY = [20, 400];
+
+          var translateRangeX = [(docWidth / 2) * -1, (docWidth / 2)];
+          var translateRangeY = [(docHeight / 2), (docHeight / 2) * -1];
+
+          var directionXFactor = convert(positionY, [400, 20], [5, 10]);
+
+
+          // now i am realizing that i need to take the average direction from the last three frames or something, so i can get more stability.
+
+
+
+          pointableString += "<br /><br />directionX: " + directionX + "<br />";
+          pointableString += "<br />directionY: " + directionY + "<br />";
+          pointableString += "<br />positionX: " + positionX + "<br />";
+          pointableString += "<br />positionY: " + positionY + "<br />";
+          pointableString += "<br />translateRangeX: " + translateRangeX + "<br />";
+          pointableString += "<br />translateRangeY: " + translateRangeY + "<br />";
+          pointableString += "Direction X factor: " + directionXFactor + "<br /><br />";
+
+
+
+          // var translateX = (positionX /* + (directionX * 10) */) + "px";
+          // var translateY = ((positionY * -1) + (docHeight / 4) /* + (directionY * 10) */) + "px";
+
+          var translateX = parseInt(convert(positionX, positionRangeX, translateRangeX) + (directionX * directionXFactor), 10) + "px";
+          var translateY = parseInt(convert(positionY, positionRangeY, translateRangeY) + (directionY * 5), 10) + "px";
+
+          pointableString += "translateX: " + translateX + " <br />";
+          pointableString += "translateY: " + translateY + " <br />";
+
+          avatar.style.webkitTransform = "translate3d(" + translateX + ", " + translateY + ", 0)";
+
+          pointableString += "</div>";
+
+        }
+        else {
+          var pointableString = "no data";
+        }
+
+        dataContainer.innerHTML = pointableString;
+
+
+
+      });
+
+    </script>
+  </body>
+</html>

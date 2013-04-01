@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Single Hand Theremin</title>
+  <meta name="description" content="A theremin built from the Web Audio API and controlled by one hand over a Leap Motion device.">
+  <meta name="author" content="Bill Fisher">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <style>
+    .avatar {
+      height:50px;
+      width: 50px;
+      -webkit-border-radius: 50%;
+      position: absolute;
+    }
+    #avatar {
+      background: #f00;
+    }
+  </style>
+
+  <script src="../leap.js"></script>
+</head>
+<body>
+<h1>Single Hand Theremin</h1>
+<ul>
+  <li>Y-Axis: Pitch</li>
+  <li>X-Axis: Delay Regeneration</li>
+  <li>Squeeze: Filter</li>
+  <li>Tilt: Gain</li>
+</ul>
+<h2>Data:</h2>
+<div id="pointable-data"></div>
+
+<div id="avatar" class="avatar"></div>
+
+<script src="../js/lib.js"></script>
+<script src="../js/synth.js"></script>
+<script src="js/theremin.js"></script>
+
+</body>
+</html>
