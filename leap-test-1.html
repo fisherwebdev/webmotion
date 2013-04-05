@@ -29,13 +29,11 @@
 
     <script>
 
+      // page set up
       var dataContainer = document.getElementById("pointable-data");
-
       var avatar = document.getElementById("avatar");
-
       var docWidth = document.width;
       var docHeight = document.height;
-
       avatar.style.left = (docWidth / 2) - (avatar.offsetWidth / 2) + "px";
       avatar.style.top = (docHeight / 2) - (avatar.offsetHeight / 2) + "px";
 
@@ -67,9 +65,6 @@
                    + vector[2].toFixed(digits) + ")";
       }
 
-      // Store frame for motion functions
-      // var previousFrame;
-
       // Track one pointer as the primary pointer
       var primaryPointableId;
 
@@ -77,6 +72,7 @@
       var controllerOptions = {enableGestures: false};
 
       Leap.loop(controllerOptions, function(frame) {
+
         if (!primaryPointableId || !frame.pointable(primaryPointableId).valid) {
           primaryPointableId = frame.pointables.length ? frame.pointables.sort(comparator("length"))[0].id : "-1"
         }
@@ -85,10 +81,10 @@
 
         if (pointable.valid) {
 
+
           var pointableString = "<div>";
           pointableString += "Pointable ID: " + pointable.id + "<br />";
           pointableString += "Belongs to hand with ID: " + pointable.handId + "<br />";
-
           if (pointable.tool) {
             pointableString += "Classified as a tool <br />";
             pointableString += "Length: " + pointable.length.toFixed(1) + " mm<br />";
@@ -98,12 +94,9 @@
             pointableString += "Classified as a finger<br />";
             pointableString += "Length: " + pointable.length.toFixed(1) + " mm<br />";
           }
-
           pointableString += "Direction: " + vectorToString(pointable.direction, 2) + "<br />";
           pointableString += "Tip position: " + vectorToString(pointable.tipPosition) + " mm<br />";
           pointableString += "Tip velocity: " + vectorToString(pointable.tipVelocity) + " mm/s<br />";
-
-
 
 
 
@@ -123,8 +116,8 @@
 
           var directionXFactor = convert(positionY, [400, 20], [5, 10]);
 
-
-          // now i am realizing that i need to take the average direction from the last three frames or something, so i can get more stability.
+          var translateX = parseInt(convert(positionX, positionRangeX, translateRangeX) + (directionX * directionXFactor), 10) + "px";
+          var translateY = parseInt(convert(positionY, positionRangeY, translateRangeY) + (directionY * 5), 10) + "px";
 
 
 
@@ -135,31 +128,21 @@
           pointableString += "<br />translateRangeX: " + translateRangeX + "<br />";
           pointableString += "<br />translateRangeY: " + translateRangeY + "<br />";
           pointableString += "Direction X factor: " + directionXFactor + "<br /><br />";
-
-
-
-          // var translateX = (positionX /* + (directionX * 10) */) + "px";
-          // var translateY = ((positionY * -1) + (docHeight / 4) /* + (directionY * 10) */) + "px";
-
-          var translateX = parseInt(convert(positionX, positionRangeX, translateRangeX) + (directionX * directionXFactor), 10) + "px";
-          var translateY = parseInt(convert(positionY, positionRangeY, translateRangeY) + (directionY * 5), 10) + "px";
-
           pointableString += "translateX: " + translateX + " <br />";
           pointableString += "translateY: " + translateY + " <br />";
+          pointableString += "</div>";
+
+
 
           avatar.style.webkitTransform = "translate3d(" + translateX + ", " + translateY + ", 0)";
-
-          pointableString += "</div>";
 
         }
         else {
           var pointableString = "no data";
         }
 
+
         dataContainer.innerHTML = pointableString;
-
-
-
       });
 
     </script>
